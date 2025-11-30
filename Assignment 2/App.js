@@ -12,21 +12,26 @@ const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
 export default function App() {
+  const screens = (
+    <>
+      <Tab.Screen name="Planets" component={PlanetsScreen} />
+      <Tab.Screen name="Spaceships" component={SpaceshipsScreen} />
+      <Tab.Screen name="Films" component={FilmsScreen} />
+    </>
+  );
+
   return (
     <NavigationContainer>
       {Platform.OS === "ios" ? (
         <Tab.Navigator screenOptions={{ headerShown: false }}>
-          <Tab.Screen name="Planets" component={PlanetsScreen} />
-          <Tab.Screen name="Spaceships" component={SpaceshipsScreen} />
-          <Tab.Screen name="Films" component={FilmsScreen} />
+          {screens}
         </Tab.Navigator>
       ) : (
         <Drawer.Navigator screenOptions={{ headerShown: false }}>
-          <Drawer.Screen name="Planets" component={PlanetsScreen} />
-          <Drawer.Screen name="Spaceships" component={SpaceshipsScreen} />
-          <Drawer.Screen name="Films" component={FilmsScreen} />
+          {screens}
         </Drawer.Navigator>
       )}
     </NavigationContainer>
   );
 }
+
