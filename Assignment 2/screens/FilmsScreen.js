@@ -1,24 +1,42 @@
 import React, { useEffect, useState } from "react";
 import { 
-  View, Text, StyleSheet, FlatList, TextInput, Button, Modal 
+  View, Text, StyleSheet, TextInput, Button, Modal, ScrollView 
 } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 
 export default function FilmsScreen() {
   const [films, setFilms] = useState([]);
   const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
+  const [swipeModalVisible, setSwipeModalVisible] = useState(false);
+  const [selectedFilm, setSelectedFilm] = useState("");
 
   useEffect(() => {
     async function loadFilms() {
-      const response = await fetch("https://swapi.tech/api/films");
-      const data = await response.json();
-      setFilms(data.results);
+      try {
+        const response = await fetch("https://swapi.tech/api/films");
+        const data = await response.json();
+        if (data.result && Array.isArray(data.result)) {
+          setFilms(data.result);
+        } else {
+          setFilms([]);
+        }
+      } catch (error) {
+        console.error("Error fetching films:", error);
+        setFilms([]);
+      }
     }
     loadFilms();
   }, []);
 
+  const handleSwipe = (film) => {
+    setSelectedFilm(film.title);
+    setSwipeModalVisible(true);
+  };
+
   return (
     <View style={styles.container}>
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -27,32 +45,59 @@ export default function FilmsScreen() {
           value={search}
           onChangeText={setSearch}
         />
-        <Button title="Go" onPress={() => setShowModal(true)} />
+        <Button title="Go" onPress={() => setSearchModalVisible(true)} />
       </View>
 
-      {/* Films List */}
-      <FlatList
-        data={films}
-        keyExtractor={(item) => item.title}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.subtitle}>Episode {item.episode_id}</Text>
-          </View>
+      {/* ScrollView + Swipeable */}
+      <ScrollView>
+        {films.length > 0 ? (
+          films.map((film) => (
+            <Swipeable
+              key={film.uid}
+              onSwipeableOpen={() => handleSwipe(film)}
+              renderRightActions={() => (
+                <View style={styles.swipeBox}>
+                  <Text style={{ color: "white" }}>Open</Text>
+                </View>
+              )}
+            >
+              <View style={styles.item}>
+                <Text style={styles.title}>{film.title}</Text>
+                <Text style={styles.subtitle}>
+                  Episode {film.episode_id || "N/A"}
+                </Text>
+              </View>
+            </Swipeable>
+          ))
+        ) : (
+          <Text style={{ padding: 20 }}>Loading films...</Text>
         )}
-      />
+      </ScrollView>
 
-      {/* Modal for search */}
-      <Modal visible={showModal} animationType="slide" transparent={true}>
+      {/* Modal for Search */}
+      <Modal visible={searchModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
             <Text style={{ fontSize: 18, marginBottom: 20 }}>
               You searched for: {search}
             </Text>
-            <Button title="Close" onPress={() => setShowModal(false)} />
+            <Button title="Close" onPress={() => setSearchModalVisible(false)} />
           </View>
         </View>
       </Modal>
+
+      {/* Modal for Swipe */}
+      <Modal visible={swipeModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={{ fontSize: 18, marginBottom: 20 }}>
+              {selectedFilm ? `You swiped: ${selectedFilm}` : ""}
+            </Text>
+            <Button title="Close" onPress={() => setSwipeModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -91,6 +136,12 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
+  swipeBox: {
+    backgroundColor: "#333",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -106,3 +157,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+
