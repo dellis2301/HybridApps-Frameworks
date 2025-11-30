@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { 
-  View, Text, StyleSheet, FlatList, TextInput, Button, Modal 
+  View, Text, StyleSheet, ScrollView, TextInput, Button, Modal 
 } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 
 export default function SpaceshipsScreen() {
   const [ships, setShips] = useState([]);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [selectedShip, setSelectedShip] = useState("");
 
   useEffect(() => {
     async function loadShips() {
@@ -16,6 +18,11 @@ export default function SpaceshipsScreen() {
     }
     loadShips();
   }, []);
+
+  const handleSwipe = (shipName) => {
+    setSelectedShip(shipName);
+    setShowModal(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -30,26 +37,29 @@ export default function SpaceshipsScreen() {
         <Button title="Go" onPress={() => setShowModal(true)} />
       </View>
 
-      {/* Starships List */}
-      <FlatList
-        data={ships}
-        keyExtractor={(item) => item.name}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.details}>
-              Model: {item.model} • Crew: {item.crew}
-            </Text>
-          </View>
-        )}
-      />
+      {/* Scrollable List */}
+      <ScrollView>
+        {ships.map((item) => (
+          <Swipeable
+            key={item.name}
+            onSwipeableOpen={() => handleSwipe(item.name)}
+          >
+            <View style={styles.item}>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.details}>Swipe to view details</Text>
+            </View>
+          </Swipeable>
+        ))}
+      </ScrollView>
 
-      {/* Modal for search */}
+      {/* Modal */}
       <Modal visible={showModal} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
             <Text style={{ fontSize: 18, marginBottom: 20 }}>
-              You searched for: {search}
+              {selectedShip
+                ? `You swiped: ${selectedShip}`
+                : `You searched for: ${search}`}
             </Text>
             <Button title="Close" onPress={() => setShowModal(false)} />
           </View>
