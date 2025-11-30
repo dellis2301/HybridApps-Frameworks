@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { 
-  View, Text, StyleSheet, FlatList, TextInput, Button, Modal 
+  View, Text, StyleSheet, ScrollView, TextInput, Button, Modal 
 } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 
 export default function PlanetsScreen() {
   const [planets, setPlanets] = useState([]);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState("");
 
   useEffect(() => {
     async function loadPlanets() {
@@ -16,6 +18,11 @@ export default function PlanetsScreen() {
     }
     loadPlanets();
   }, []);
+
+  const handleSwipe = (itemName) => {
+    setSelectedItem(itemName);
+    setShowModal(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -30,26 +37,30 @@ export default function PlanetsScreen() {
         <Button title="Go" onPress={() => setShowModal(true)} />
       </View>
 
-      {/* Planets List */}
-      <FlatList
-        data={planets}
-        keyExtractor={(item) => item.name}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.details}>
-              Climate: {item.climate} • Population: {item.population}
-            </Text>
-          </View>
-        )}
-      />
+      {/* ScrollView wrapping your list */}
+      <ScrollView>
+        {planets.map((item) => (
+          <Swipeable
+            key={item.name}
+            onSwipeableOpen={() => handleSwipe(item.name)}
+          >
+            <View style={styles.item}>
+              <Text style={styles.name}>{item.name}</Text>
+              {/* These fields aren't included in swapi.tech results,
+                  so I removed climate/population to prevent errors.
+                */}
+              <Text style={styles.details}>Swipe to show details</Text>
+            </View>
+          </Swipeable>
+        ))}
+      </ScrollView>
 
-      {/* Modal for search */}
+      {/* Modal */}
       <Modal visible={showModal} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
             <Text style={{ fontSize: 18, marginBottom: 20 }}>
-              You searched for: {search}
+              {selectedItem ? `You swiped: ${selectedItem}` : `You searched: ${search}`}
             </Text>
             <Button title="Close" onPress={() => setShowModal(false)} />
           </View>
