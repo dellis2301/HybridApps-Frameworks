@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { 
-  View, Text, StyleSheet, TextInput, Button, Modal, ScrollView, Animated 
+  View, Text, StyleSheet, TextInput, Button, Modal, ScrollView, Animated, Image 
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 
@@ -11,7 +11,7 @@ export default function PlanetsScreen() {
   const [swipeModalVisible, setSwipeModalVisible] = useState(false);
   const [selectedPlanet, setSelectedPlanet] = useState("");
 
-  const fadeAnims = useRef([]).current; // array of Animated.Values
+  const fadeAnims = useRef([]).current; // array to hold Animated.Values
 
   useEffect(() => {
     async function loadPlanets() {
@@ -21,20 +21,21 @@ export default function PlanetsScreen() {
         const results = data.results || [];
         setPlanets(results);
 
-        // Initialize fade values for each planet
+        // Initialize a fade value for each planet
         results.forEach((_, index) => {
           fadeAnims[index] = new Animated.Value(0);
         });
 
-        // Start staggered animations
+        // Staggered fade-in animation
         const animations = results.map((_, index) =>
           Animated.timing(fadeAnims[index], {
             toValue: 1,
             duration: 500,
-            delay: index * 150, // stagger by 150ms
+            delay: index * 150,
             useNativeDriver: true,
           })
         );
+
         Animated.stagger(150, animations).start();
 
       } catch (error) {
@@ -53,6 +54,13 @@ export default function PlanetsScreen() {
 
   return (
     <View style={styles.container}>
+      
+      {/* Top themed image */}
+      <Image
+        source={{ uri: "https://static.vecteezy.com/system/resources/previews/024/448/956/large_2x/space-wallpaper-banner-background-stunning-view-of-a-cosmic-galaxy-with-planets-and-space-objects-elements-of-this-image-furnished-by-nasa-generate-ai-free-photo.jpg" }}
+        style={styles.headerImage}
+        resizeMode="contain"
+      />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -65,7 +73,7 @@ export default function PlanetsScreen() {
         <Button title="Go" onPress={() => setSearchModalVisible(true)} />
       </View>
 
-      {/* Scrollable Swipeable List with Staggered Fade-in */}
+      {/* Scrollable list with staggered fade-in */}
       <ScrollView>
         {planets.length > 0 ? (
           planets.map((planet, index) => (
@@ -133,58 +141,13 @@ export default function PlanetsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  searchInput: {
-    flex: 1,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginRight: 10,
-  },
-
-  item: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-  },
-
-  name: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-
-  details: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 2,
-  },
-
-  swipeBox: {
-    backgroundColor: "#333",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-
-  modalBox: {
-    backgroundColor: "white",
-    padding: 25,
-    borderRadius: 12,
-    width: "80%",
-    alignItems: "center",
-  },
+  headerImage: { width: "100%", height: 100, marginBottom: 15 }, // lazy-loaded header image
+  searchContainer: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  searchInput: { flex: 1, borderColor: "#ccc", borderWidth: 1, borderRadius: 8, padding: 10, marginRight: 10 },
+  item: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#ccc" },
+  name: { fontSize: 20, fontWeight: "bold" },
+  details: { fontSize: 14, opacity: 0.7, marginTop: 2 },
+  swipeBox: { backgroundColor: "#333", justifyContent: "center", paddingHorizontal: 20 },
+  modalContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.6)" },
+  modalBox: { backgroundColor: "white", padding: 25, borderRadius: 12, width: "80%", alignItems: "center" },
 });
-
