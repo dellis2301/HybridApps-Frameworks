@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { 
-  View, Text, StyleSheet, TextInput, Button, Modal, ScrollView 
+  View, Text, StyleSheet, TextInput, Button, Modal, ScrollView, Image
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 
@@ -36,6 +36,13 @@ export default function FilmsScreen() {
 
   return (
     <View style={styles.container}>
+
+      {/* Top themed image */}
+      <Image
+        source={{ uri: "https://tse3.mm.bing.net/th/id/OIP._enNoSC2zHYma_iiRg3uZgHaEK?pid=Api&P=0&h=220" }}
+        style={styles.headerImage}
+        resizeMode="cover"
+      />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -74,7 +81,7 @@ export default function FilmsScreen() {
         )}
       </ScrollView>
 
-      {/* Modal for Search */}
+      {/* Search Modal */}
       <Modal visible={searchModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
@@ -86,7 +93,7 @@ export default function FilmsScreen() {
         </View>
       </Modal>
 
-      {/* Modal for Swipe */}
+      {/* Swipe Modal */}
       <Modal visible={swipeModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
@@ -104,6 +111,13 @@ export default function FilmsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+
+  headerImage: {
+    width: "100%",
+    height: 150, // ensures image is visible
+    marginBottom: 15,
+    borderRadius: 8,
+  },
 
   searchContainer: {
     flexDirection: "row",
@@ -157,4 +171,3 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
-
