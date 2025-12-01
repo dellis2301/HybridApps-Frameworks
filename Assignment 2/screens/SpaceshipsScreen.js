@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { 
-  View, Text, StyleSheet, ScrollView, TextInput, Button, Modal 
+  View, Text, StyleSheet, ScrollView, TextInput, Button, Modal, Image
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 
@@ -12,9 +12,15 @@ export default function SpaceshipsScreen() {
 
   useEffect(() => {
     async function loadShips() {
-      const response = await fetch("https://swapi.tech/api/starships/");
-      const data = await response.json();
-      setShips(data.results);
+      try {
+        const response = await fetch("https://swapi.tech/api/starships/");
+        const data = await response.json();
+        const results = data.results || [];
+        setShips(results);
+      } catch (error) {
+        console.error("Error fetching ships:", error);
+        setShips([]);
+      }
     }
     loadShips();
   }, []);
@@ -26,6 +32,14 @@ export default function SpaceshipsScreen() {
 
   return (
     <View style={styles.container}>
+
+      {/* Top themed image */}
+      <Image
+        source={{ uri: "https://tse1.mm.bing.net/th/id/OIP.gGhb7rHU4dfCIVa1BoBoDgHaFl?pid=Api&P=0&h=220" }}
+        style={styles.headerImage}
+        resizeMode="cover"
+      />
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -39,17 +53,21 @@ export default function SpaceshipsScreen() {
 
       {/* Scrollable List */}
       <ScrollView>
-        {ships.map((item) => (
-          <Swipeable
-            key={item.name}
-            onSwipeableOpen={() => handleSwipe(item.name)}
-          >
-            <View style={styles.item}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.details}>Swipe to view details</Text>
-            </View>
-          </Swipeable>
-        ))}
+        {ships.length > 0 ? (
+          ships.map((item) => (
+            <Swipeable
+              key={item.name}
+              onSwipeableOpen={() => handleSwipe(item.name)}
+            >
+              <View style={styles.item}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.details}>Swipe to view details</Text>
+              </View>
+            </Swipeable>
+          ))
+        ) : (
+          <Text style={{ padding: 20 }}>Loading ships...</Text>
+        )}
       </ScrollView>
 
       {/* Modal */}
@@ -65,12 +83,20 @@ export default function SpaceshipsScreen() {
           </View>
         </View>
       </Modal>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+
+  headerImage: {
+    width: "100%",
+    height: 150,
+    marginBottom: 15,
+    borderRadius: 8,
+  },
 
   searchContainer: {
     flexDirection: "row",
