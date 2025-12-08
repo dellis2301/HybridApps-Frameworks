@@ -11,7 +11,8 @@ export default function PlanetsScreen() {
   const [swipeModalVisible, setSwipeModalVisible] = useState(false);
   const [selectedPlanet, setSelectedPlanet] = useState("");
 
-  const fadeAnims = useRef([]).current; // array to hold Animated.Values
+  // Store fade animations in a ref (stable across renders)
+  const fadeAnimsRef = useRef([]);
 
   useEffect(() => {
     async function loadPlanets() {
@@ -21,14 +22,16 @@ export default function PlanetsScreen() {
         const results = data.results || [];
         setPlanets(results);
 
-        // Initialize a fade value for each planet
+        // Initialize a fade value for each planet 
         results.forEach((_, index) => {
-          fadeAnims[index] = new Animated.Value(0);
+          if (!fadeAnimsRef.current[index]) {
+            fadeAnimsRef.current[index] = new Animated.Value(0);
+          }
         });
 
         // Staggered fade-in animation
         const animations = results.map((_, index) =>
-          Animated.timing(fadeAnims[index], {
+          Animated.timing(fadeAnimsRef.current[index], {
             toValue: 1,
             duration: 500,
             delay: index * 150,
@@ -45,7 +48,7 @@ export default function PlanetsScreen() {
     }
 
     loadPlanets();
-  }, []);
+  }, []); // fadeAnimsRef is stable, no need to include it
 
   const handleSwipe = (planet) => {
     setSelectedPlanet(planet.name);
@@ -54,7 +57,6 @@ export default function PlanetsScreen() {
 
   return (
     <View style={styles.container}>
-      
       {/* Top themed image */}
       <Image
         source={{ uri: "https://static.vecteezy.com/system/resources/previews/024/448/956/large_2x/space-wallpaper-banner-background-stunning-view-of-a-cosmic-galaxy-with-planets-and-space-objects-elements-of-this-image-furnished-by-nasa-generate-ai-free-photo.jpg" }}
@@ -79,7 +81,7 @@ export default function PlanetsScreen() {
           planets.map((planet, index) => (
             <Animated.View
               key={planet.uid}
-              style={[styles.item, { opacity: fadeAnims[index] || 0 }]}
+              style={[styles.item, { opacity: fadeAnimsRef.current[index] || 0 }]}
             >
               <Swipeable
                 onSwipeableOpen={() => handleSwipe(planet)}
@@ -103,12 +105,8 @@ export default function PlanetsScreen() {
         )}
       </ScrollView>
 
-      {/* Search Modal */}
-      <Modal
-        visible={searchModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
+      {/* Modals */}
+      <Modal visible={searchModalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
             <Text style={{ fontSize: 18, marginBottom: 20 }}>
@@ -119,12 +117,7 @@ export default function PlanetsScreen() {
         </View>
       </Modal>
 
-      {/* Swipe Modal */}
-      <Modal
-        visible={swipeModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
+      <Modal visible={swipeModalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
             <Text style={{ fontSize: 18, marginBottom: 20 }}>
@@ -134,14 +127,13 @@ export default function PlanetsScreen() {
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-  headerImage: { width: "100%", height: 100, marginBottom: 15 }, // lazy-loaded header image
+  headerImage: { width: "100%", height: 100, marginBottom: 15 },
   searchContainer: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   searchInput: { flex: 1, borderColor: "#ccc", borderWidth: 1, borderRadius: 8, padding: 10, marginRight: 10 },
   item: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#ccc" },
