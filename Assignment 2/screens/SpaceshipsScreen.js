@@ -1,17 +1,29 @@
 import React, { useEffect, useState } from "react";
 import { 
-  View, Text, StyleSheet, ScrollView, TextInput, Button, Modal, Image
+  View, Text, StyleSheet, ScrollView, TextInput, Button, Modal, Image 
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
+import NetInfo from "@react-native-community/netinfo";
 
 export default function SpaceshipsScreen() {
   const [ships, setShips] = useState([]);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedShip, setSelectedShip] = useState("");
+  const [isConnected, setIsConnected] = useState(true);
+
+  useEffect(() => {
+    // Listen for network changes
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function loadShips() {
+      if (!isConnected) return; // Don't fetch if offline
+
       try {
         const response = await fetch("https://swapi.tech/api/starships/");
         const data = await response.json();
@@ -23,7 +35,7 @@ export default function SpaceshipsScreen() {
       }
     }
     loadShips();
-  }, []);
+  }, [isConnected]);
 
   const handleSwipe = (shipName) => {
     setSelectedShip(shipName);
@@ -40,6 +52,13 @@ export default function SpaceshipsScreen() {
         resizeMode="cover"
       />
 
+      {/* Offline message */}
+      {!isConnected && (
+        <Text style={styles.offlineText}>
+          ❌ No Internet Connection — Please reconnect to load starships.
+        </Text>
+      )}
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -53,20 +72,26 @@ export default function SpaceshipsScreen() {
 
       {/* Scrollable List */}
       <ScrollView>
-        {ships.length > 0 ? (
-          ships.map((item) => (
-            <Swipeable
-              key={item.name}
-              onSwipeableOpen={() => handleSwipe(item.name)}
-            >
-              <View style={styles.item}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.details}>Swipe to view details</Text>
-              </View>
-            </Swipeable>
-          ))
+        {isConnected ? (
+          ships.length > 0 ? (
+            ships.map((item) => (
+              <Swipeable
+                key={item.name}
+                onSwipeableOpen={() => handleSwipe(item.name)}
+              >
+                <View style={styles.item}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.details}>Swipe to view details</Text>
+                </View>
+              </Swipeable>
+            ))
+          ) : (
+            <Text style={{ padding: 20 }}>Loading ships...</Text>
+          )
         ) : (
-          <Text style={{ padding: 20 }}>Loading ships...</Text>
+          <Text style={{ padding: 20, fontSize: 16 }}>
+            Unable to load starships while offline.
+          </Text>
         )}
       </ScrollView>
 
@@ -96,6 +121,16 @@ const styles = StyleSheet.create({
     height: 150,
     marginBottom: 15,
     borderRadius: 8,
+  },
+
+  offlineText: {
+    backgroundColor: "#ffdddd",
+    color: "#b00000",
+    padding: 10,
+    textAlign: "center",
+    borderRadius: 8,
+    marginBottom: 10,
+    fontWeight: "bold",
   },
 
   searchContainer: {
