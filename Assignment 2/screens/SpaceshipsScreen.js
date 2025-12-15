@@ -1,19 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { 
-  View, Text, StyleSheet, ScrollView, TextInput, Button, Modal, Image 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Button,
+  Image,
+  TouchableOpacity
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import NetInfo from "@react-native-community/netinfo";
+import { useNavigation } from "@react-navigation/native";
 
 export default function SpaceshipsScreen() {
   const [ships, setShips] = useState([]);
   const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [selectedShip, setSelectedShip] = useState("");
   const [isConnected, setIsConnected] = useState(true);
 
+  const navigation = useNavigation();
+
   useEffect(() => {
-    // Listen for network changes
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
     });
@@ -22,44 +29,70 @@ export default function SpaceshipsScreen() {
 
   useEffect(() => {
     async function loadShips() {
-      if (!isConnected) return; // Don't fetch if offline
+      if (!isConnected) return;
 
       try {
         const response = await fetch("https://swapi.tech/api/starships/");
         const data = await response.json();
-        const results = data.results || [];
-        setShips(results);
+        setShips(data.results || []);
       } catch (error) {
         console.error("Error fetching ships:", error);
-        setShips([]);
       }
     }
+
     loadShips();
   }, [isConnected]);
 
-  const handleSwipe = (shipName) => {
-    setSelectedShip(shipName);
-    setShowModal(true);
+  // Navigate to detail screen on swipe
+  const handleSwipeLeft = (ship) => {
+    navigation.navigate("SpaceshipDetail", {
+      shipId: ship.uid,
+      shipName: ship.name
+    });
   };
+
+  // Filter ships by search text
+  const filteredShips = ships.filter(ship =>
+    ship.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Swipe action view
+  const LeftAction = () => (
+    <View style={styles.leftAction}>
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>View Details</Text>
+    </View>
+  );
+
+  const renderItem = ({ item }) => (
+    <Swipeable
+      renderLeftActions={LeftAction}
+      onSwipeableLeftOpen={() => handleSwipeLeft(item)}
+    >
+      <TouchableOpacity>
+        <View style={styles.item}>
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.details}>Swipe left to view details</Text>
+        </View>
+      </TouchableOpacity>
+    </Swipeable>
+  );
 
   return (
     <View style={styles.container}>
-
-      {/* Top themed image */}
       <Image
-        source={{ uri: "https://tse1.mm.bing.net/th/id/OIP.gGhb7rHU4dfCIVa1BoBoDgHaFl?pid=Api&P=0&h=220" }}
+        source={{
+          uri: "https://tse1.mm.bing.net/th/id/OIP.gGhb7rHU4dfCIVa1BoBoDgHaFl?pid=Api&P=0&h=220"
+        }}
         style={styles.headerImage}
         resizeMode="cover"
       />
 
-      {/* Offline message */}
       {!isConnected && (
         <Text style={styles.offlineText}>
           ❌ No Internet Connection — Please reconnect to load starships.
         </Text>
       )}
 
-      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -67,48 +100,24 @@ export default function SpaceshipsScreen() {
           value={search}
           onChangeText={setSearch}
         />
-        <Button title="Go" onPress={() => setShowModal(true)} />
+        <Button title="Clear" onPress={() => setSearch("")} />
       </View>
 
-      {/* Scrollable List */}
-      <ScrollView>
-        {isConnected ? (
-          ships.length > 0 ? (
-            ships.map((item) => (
-              <Swipeable
-                key={item.name}
-                onSwipeableOpen={() => handleSwipe(item.name)}
-              >
-                <View style={styles.item}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.details}>Swipe to view details</Text>
-                </View>
-              </Swipeable>
-            ))
-          ) : (
-            <Text style={{ padding: 20 }}>Loading ships...</Text>
-          )
+      {isConnected ? (
+        filteredShips.length > 0 ? (
+          <FlatList
+            data={filteredShips}
+            keyExtractor={(item) => item.uid}
+            renderItem={renderItem}
+          />
         ) : (
-          <Text style={{ padding: 20, fontSize: 16 }}>
-            Unable to load starships while offline.
-          </Text>
-        )}
-      </ScrollView>
-
-      {/* Modal */}
-      <Modal visible={showModal} animationType="slide" transparent={true}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={{ fontSize: 18, marginBottom: 20 }}>
-              {selectedShip
-                ? `You swiped: ${selectedShip}`
-                : `You searched for: ${search}`}
-            </Text>
-            <Button title="Close" onPress={() => setShowModal(false)} />
-          </View>
-        </View>
-      </Modal>
-
+          <Text style={{ padding: 20 }}>No starships found.</Text>
+        )
+      ) : (
+        <Text style={{ padding: 20 }}>
+          Unable to load starships while offline.
+        </Text>
+      )}
     </View>
   );
 }
@@ -152,6 +161,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+    marginBottom: 5,
+    paddingHorizontal: 10,
   },
 
   name: {
@@ -165,18 +178,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  modalContainer: {
-    flex: 1,
+  leftAction: {
+    backgroundColor: "#2196F3",
     justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-
-  modalBox: {
-    backgroundColor: "white",
-    padding: 25,
-    borderRadius: 12,
-    width: "80%",
-    alignItems: "center",
+    alignItems: "flex-start",
+    width: 120,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginBottom: 5,
   },
 });
