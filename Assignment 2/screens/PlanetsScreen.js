@@ -1,46 +1,39 @@
-import React, { useEffect, useState, useRef } from "react";
-import { 
-  View, Text, StyleSheet, TextInput, Button, Modal, ScrollView, Animated, Image 
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Image,
+  TouchableOpacity
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
+import NetInfo from "@react-native-community/netinfo";
+import { useNavigation } from "@react-navigation/native";
 
 export default function PlanetsScreen() {
   const [planets, setPlanets] = useState([]);
   const [search, setSearch] = useState("");
-  const [searchModalVisible, setSearchModalVisible] = useState(false);
-  const [swipeModalVisible, setSwipeModalVisible] = useState(false);
-  const [selectedPlanet, setSelectedPlanet] = useState("");
+  const [isConnected, setIsConnected] = useState(true);
 
-  // Store fade animations in a ref (stable across renders)
-  const fadeAnimsRef = useRef([]);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function loadPlanets() {
+      if (!isConnected) return;
+
       try {
         const response = await fetch("https://swapi.tech/api/planets");
         const data = await response.json();
-        const results = data.results || [];
-        setPlanets(results);
-
-        // Initialize a fade value for each planet 
-        results.forEach((_, index) => {
-          if (!fadeAnimsRef.current[index]) {
-            fadeAnimsRef.current[index] = new Animated.Value(0);
-          }
-        });
-
-        // Staggered fade-in animation
-        const animations = results.map((_, index) =>
-          Animated.timing(fadeAnimsRef.current[index], {
-            toValue: 1,
-            duration: 500,
-            delay: index * 150,
-            useNativeDriver: true,
-          })
-        );
-
-        Animated.stagger(150, animations).start();
-
+        setPlanets(data.results || []);
       } catch (error) {
         console.error("Error fetching planets:", error);
         setPlanets([]);
@@ -48,85 +41,77 @@ export default function PlanetsScreen() {
     }
 
     loadPlanets();
-  }, []); // fadeAnimsRef is stable, no need to include it
+  }, [isConnected]);
 
-  const handleSwipe = (planet) => {
-    setSelectedPlanet(planet.name);
-    setSwipeModalVisible(true);
+  // Swipe action to view details (can navigate to detail screen)
+  const handleSwipeLeft = (planet) => {
+    navigation.navigate("PlanetDetail", { planetId: planet.uid, planetName: planet.name });
   };
+
+  // Filter planets dynamically
+  const filteredPlanets = planets.filter(planet =>
+    planet.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const LeftAction = () => (
+    <View style={styles.leftAction}>
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>View Details</Text>
+    </View>
+  );
+
+  const renderItem = ({ item }) => (
+    <Swipeable
+      renderLeftActions={LeftAction}
+      onSwipeableLeftOpen={() => handleSwipeLeft(item)}
+    >
+      <TouchableOpacity>
+        <View style={styles.item}>
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.details}>
+            Climate: {item.climate} • Population: {item.population}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Swipeable>
+  );
 
   return (
     <View style={styles.container}>
-      {/* Top themed image */}
       <Image
         source={{ uri: "https://static.vecteezy.com/system/resources/previews/024/448/956/large_2x/space-wallpaper-banner-background-stunning-view-of-a-cosmic-galaxy-with-planets-and-space-objects-elements-of-this-image-furnished-by-nasa-generate-ai-free-photo.jpg" }}
         style={styles.headerImage}
         resizeMode="contain"
       />
 
-      {/* Search Bar */}
+      {!isConnected && (
+        <Text style={styles.offlineText}>
+          ❌ No Internet Connection — Please reconnect to load planets.
+        </Text>
+      )}
+
+      {/* Search Input */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
           placeholder="Search Planets..."
           value={search}
-          onChangeText={setSearch}
+          onChangeText={setSearch} // dynamic filtering
         />
-        <Button title="Go" onPress={() => setSearchModalVisible(true)} />
       </View>
 
-      {/* Scrollable list with staggered fade-in */}
-      <ScrollView>
-        {planets.length > 0 ? (
-          planets.map((planet, index) => (
-            <Animated.View
-              key={planet.uid}
-              style={[styles.item, { opacity: fadeAnimsRef.current[index] || 0 }]}
-            >
-              <Swipeable
-                onSwipeableOpen={() => handleSwipe(planet)}
-                renderRightActions={() => (
-                  <View style={styles.swipeBox}>
-                    <Text style={{ color: "white" }}>Open</Text>
-                  </View>
-                )}
-              >
-                <View>
-                  <Text style={styles.name}>{planet.name}</Text>
-                  <Text style={styles.details}>
-                    Climate: {planet.climate} • Population: {planet.population}
-                  </Text>
-                </View>
-              </Swipeable>
-            </Animated.View>
-          ))
+      {isConnected ? (
+        filteredPlanets.length > 0 ? (
+          <FlatList
+            data={filteredPlanets}
+            keyExtractor={(item) => item.uid}
+            renderItem={renderItem}
+          />
         ) : (
-          <Text style={{ padding: 20 }}>Loading planets...</Text>
-        )}
-      </ScrollView>
-
-      {/* Modals */}
-      <Modal visible={searchModalVisible} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={{ fontSize: 18, marginBottom: 20 }}>
-              You searched for: {search}
-            </Text>
-            <Button title="Close" onPress={() => setSearchModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={swipeModalVisible} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={{ fontSize: 18, marginBottom: 20 }}>
-              {selectedPlanet ? `You swiped: ${selectedPlanet}` : ""}
-            </Text>
-            <Button title="Close" onPress={() => setSwipeModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
+          <Text style={{ padding: 20 }}>No planets found.</Text>
+        )
+      ) : (
+        <Text style={{ padding: 20 }}>Unable to load planets while offline.</Text>
+      )}
     </View>
   );
 }
@@ -134,12 +119,12 @@ export default function PlanetsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
   headerImage: { width: "100%", height: 100, marginBottom: 15 },
+  offlineText: { backgroundColor: "#ffdddd", color: "#b00000", padding: 10, textAlign: "center", borderRadius: 8, marginBottom: 10, fontWeight: "bold" },
   searchContainer: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  searchInput: { flex: 1, borderColor: "#ccc", borderWidth: 1, borderRadius: 8, padding: 10, marginRight: 10 },
-  item: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#ccc" },
+  searchInput: { flex: 1, borderColor: "#ccc", borderWidth: 1, borderRadius: 8, padding: 10 },
+  item: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#ccc", backgroundColor: "#f9f9f9", borderRadius: 8, marginBottom: 5, paddingHorizontal: 10 },
   name: { fontSize: 20, fontWeight: "bold" },
   details: { fontSize: 14, opacity: 0.7, marginTop: 2 },
-  swipeBox: { backgroundColor: "#333", justifyContent: "center", paddingHorizontal: 20 },
-  modalContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.6)" },
-  modalBox: { backgroundColor: "white", padding: 25, borderRadius: 12, width: "80%", alignItems: "center" },
+  leftAction: { backgroundColor: "#2196F3", justifyContent: "center", alignItems: "flex-start", width: 120, paddingHorizontal: 10, borderRadius: 8, marginBottom: 5 },
 });
+
