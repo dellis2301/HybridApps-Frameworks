@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TextInput,
-  Button,
   Image,
   TouchableOpacity
 } from "react-native";
@@ -15,7 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 
 export default function SpaceshipsScreen() {
   const [ships, setShips] = useState([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(""); // search input
   const [isConnected, setIsConnected] = useState(true);
 
   const navigation = useNavigation();
@@ -43,7 +42,7 @@ export default function SpaceshipsScreen() {
     loadShips();
   }, [isConnected]);
 
-  // Navigate to detail screen on swipe
+  // Navigate to detail screen
   const handleSwipeLeft = (ship) => {
     navigation.navigate("SpaceshipDetail", {
       shipId: ship.uid,
@@ -51,12 +50,11 @@ export default function SpaceshipsScreen() {
     });
   };
 
-  // Filter ships by search text
+  // Filter the ships dynamically based on search
   const filteredShips = ships.filter(ship =>
     ship.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Swipe action view
   const LeftAction = () => (
     <View style={styles.leftAction}>
       <Text style={{ color: "#fff", fontWeight: "bold" }}>View Details</Text>
@@ -93,14 +91,14 @@ export default function SpaceshipsScreen() {
         </Text>
       )}
 
+      {/* Search Input */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
           placeholder="Search Starships..."
           value={search}
-          onChangeText={setSearch}
+          onChangeText={setSearch} // dynamically filters list
         />
-        <Button title="Clear" onPress={() => setSearch("")} />
       </View>
 
       {isConnected ? (
@@ -124,14 +122,12 @@ export default function SpaceshipsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-
   headerImage: {
     width: "100%",
     height: 150,
     marginBottom: 15,
     borderRadius: 8,
   },
-
   offlineText: {
     backgroundColor: "#ffdddd",
     color: "#b00000",
@@ -141,22 +137,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontWeight: "bold",
   },
-
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
   },
-
   searchInput: {
     flex: 1,
     borderColor: "#ccc",
     borderWidth: 1,
     borderRadius: 8,
     padding: 10,
-    marginRight: 10,
   },
-
   item: {
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -166,18 +158,8 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     paddingHorizontal: 10,
   },
-
-  name: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-
-  details: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 2,
-  },
-
+  name: { fontSize: 20, fontWeight: "bold" },
+  details: { fontSize: 14, opacity: 0.7, marginTop: 2 },
   leftAction: {
     backgroundColor: "#2196F3",
     justifyContent: "center",
@@ -188,3 +170,4 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 });
+
