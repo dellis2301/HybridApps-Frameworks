@@ -1,40 +1,39 @@
 import React, { useEffect, useState } from "react";
-import { 
-  View, Text, StyleSheet, TextInput, Button, Modal, ScrollView, Image
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Image,
+  TouchableOpacity
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import NetInfo from "@react-native-community/netinfo";
+import { useNavigation } from "@react-navigation/native";
 
 export default function FilmsScreen() {
   const [films, setFilms] = useState([]);
   const [search, setSearch] = useState("");
-  const [searchModalVisible, setSearchModalVisible] = useState(false);
-  const [swipeModalVisible, setSwipeModalVisible] = useState(false);
-  const [selectedFilm, setSelectedFilm] = useState("");
   const [isConnected, setIsConnected] = useState(true);
 
+  const navigation = useNavigation();
+
   useEffect(() => {
-    // Listen to network status
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
     });
-
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    // Fetch films only if online
     async function loadFilms() {
       if (!isConnected) return;
 
       try {
         const response = await fetch("https://swapi.tech/api/films");
         const data = await response.json();
-        if (data.result && Array.isArray(data.result)) {
-          setFilms(data.result);
-        } else {
-          setFilms([]);
-        }
+        setFilms(data.result || []);
       } catch (error) {
         console.error("Error fetching films:", error);
         setFilms([]);
@@ -44,94 +43,75 @@ export default function FilmsScreen() {
     loadFilms();
   }, [isConnected]);
 
-  const handleSwipe = (film) => {
-    setSelectedFilm(film.title);
-    setSwipeModalVisible(true);
+  // Optional swipe action (you could navigate to a detail screen)
+  const handleSwipeLeft = (film) => {
+    navigation.navigate("FilmDetail", { filmId: film.uid, filmTitle: film.title });
   };
+
+  // Filter films based on search input
+  const filteredFilms = films.filter(film =>
+    film.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const LeftAction = () => (
+    <View style={styles.leftAction}>
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>View Details</Text>
+    </View>
+  );
+
+  const renderItem = ({ item }) => (
+    <Swipeable
+      renderLeftActions={LeftAction}
+      onSwipeableLeftOpen={() => handleSwipeLeft(item)}
+    >
+      <TouchableOpacity>
+        <View style={styles.item}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.subtitle}>Episode {item.episode_id || "N/A"}</Text>
+        </View>
+      </TouchableOpacity>
+    </Swipeable>
+  );
 
   return (
     <View style={styles.container}>
-      {/* Top themed image */}
       <Image
-        source={{ uri: "https://tse3.mm.bing.net/th/id/OIP._enNoSC2zHYma_iiRg3uZgHaEK?pid=Api&P=0&h=220" }}
+        source={{
+          uri: "https://tse3.mm.bing.net/th/id/OIP._enNoSC2zHYma_iiRg3uZgHaEK?pid=Api&P=0&h=220"
+        }}
         style={styles.headerImage}
         resizeMode="cover"
       />
 
-      {/* Offline message */}
       {!isConnected && (
         <Text style={styles.offlineText}>
           ❌ No Internet Connection — Please reconnect to load films.
         </Text>
       )}
 
-      {/* Search Bar */}
+      {/* Search Input */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search Star Wars..."
+          placeholder="Search Films..."
           value={search}
-          onChangeText={setSearch}
+          onChangeText={setSearch} // dynamic filtering
         />
-        <Button title="Go" onPress={() => setSearchModalVisible(true)} />
       </View>
 
-      {/* ScrollView + Swipeable */}
-      <ScrollView>
-        {isConnected ? (
-          films.length > 0 ? (
-            films.map((film) => (
-              <Swipeable
-                key={film.uid}
-                onSwipeableOpen={() => handleSwipe(film)}
-                renderRightActions={() => (
-                  <View style={styles.swipeBox}>
-                    <Text style={{ color: "white" }}>Open</Text>
-                  </View>
-                )}
-              >
-                <View style={styles.item}>
-                  <Text style={styles.title}>{film.title}</Text>
-                  <Text style={styles.subtitle}>
-                    Episode {film.episode_id || "N/A"}
-                  </Text>
-                </View>
-              </Swipeable>
-            ))
-          ) : (
-            <Text style={{ padding: 20 }}>Loading films...</Text>
-          )
+      {isConnected ? (
+        filteredFilms.length > 0 ? (
+          <FlatList
+            data={filteredFilms}
+            keyExtractor={(item) => item.uid}
+            renderItem={renderItem}
+          />
         ) : (
-          <Text style={{ padding: 20, fontSize: 16 }}>
-            Unable to load films while offline.
-          </Text>
-        )}
-      </ScrollView>
-
-      {/* Search Modal */}
-      <Modal visible={searchModalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={{ fontSize: 18, marginBottom: 20 }}>
-              You searched for: {search}
-            </Text>
-            <Button title="Close" onPress={() => setSearchModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Swipe Modal */}
-      <Modal visible={swipeModalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={{ fontSize: 18, marginBottom: 20 }}>
-              {selectedFilm ? `You swiped: ${selectedFilm}` : ""}
-            </Text>
-            <Button title="Close" onPress={() => setSwipeModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-
+          <Text style={{ padding: 20 }}>No films found.</Text>
+        )
+      ) : (
+        <Text style={{ padding: 20 }}>Unable to load films while offline.</Text>
+      )}
     </View>
   );
 }
@@ -168,43 +148,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     padding: 10,
-    marginRight: 10,
   },
 
   item: {
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+    marginBottom: 5,
+    paddingHorizontal: 10,
   },
 
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
+  title: { fontSize: 20, fontWeight: "bold" },
+  subtitle: { fontSize: 14, opacity: 0.7, marginTop: 2 },
 
-  subtitle: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
-
-  swipeBox: {
-    backgroundColor: "#333",
+  leftAction: {
+    backgroundColor: "#2196F3",
     justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-
-  modalBox: {
-    backgroundColor: "white",
-    padding: 25,
-    borderRadius: 12,
-    width: "80%",
-    alignItems: "center",
+    alignItems: "flex-start",
+    width: 120,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginBottom: 5,
   },
 });
+
